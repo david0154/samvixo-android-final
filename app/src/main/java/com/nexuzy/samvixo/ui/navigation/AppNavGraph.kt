@@ -32,7 +32,7 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
             OnboardingNameScreen(navController = navController)
         }
 
-        // ── Main ───────────────────────────────────────────────────────────────
+        // ── Main ──────────────────────────────────────────────────────────────
         composable("chats") {
             ChatsScreen(
                 onOpenChat    = { chatId, type ->
@@ -182,25 +182,25 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
             SettingsScreen(navController = navController)
         }
 
-        // Account → AccountScreen (defined in SettingsSubScreens.kt)
         composable(Screen.Account.route) {
             AccountScreen(navController = navController)
         }
 
-        // Avatar screen
         composable(Screen.Avatar.route) {
             AvatarScreen(navController = navController)
         }
 
-        // Edit Profile & Profile → ProfileScreen (the file that exists)
-        composable(Screen.EditProfile.route) {
-            ProfileScreen(navController = navController)
-        }
+        // Profile view (read-only)
         composable(Screen.Profile.route) {
             ProfileScreen(navController = navController)
         }
 
-        // Privacy / Profile Settings → ProfileSettingsScreen (standalone file)
+        // Edit Profile → EditProfileScreen (in ProfileSettingsScreen.kt)
+        composable(Screen.EditProfile.route) {
+            EditProfileScreen(navController = navController)
+        }
+
+        // Privacy / Profile Settings → ProfileSettingsScreen (in SettingsSubScreens.kt)
         composable(Screen.ProfileSettings.route) {
             ProfileSettingsScreen(navController = navController)
         }
@@ -217,7 +217,6 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
             AppLanguageScreen(navController = navController)
         }
 
-        // AppLocker → defined in SettingsSubScreens.kt
         composable(Screen.AppLocker.route) {
             AppLockerScreen(navController = navController)
         }
@@ -230,7 +229,7 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
             InviteFriendScreen(navController = navController)
         }
 
-        // ── Linked Devices ──────────────────────────────────────────────────
+        // ── Linked Devices ────────────────────────────────────────────────────
         composable(Screen.LinkedDevices.route) {
             LinkedDevicesScreen(onBack = { navController.popBackStack() })
         }
@@ -263,7 +262,7 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
             WeatherScreen(navController = navController)
         }
 
-        // ── Help / Info Screens (from SamvixoInfoScreens.kt) ───────────────────
+        // ── Help / Info Screens ───────────────────────────────────────────────
         composable(Screen.ContactUs.route) {
             ContactUsScreen(navController = navController)
         }
