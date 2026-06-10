@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Samvixo – Chat, Share &amp; Explore</title>
+  <meta name="description" content="Samvixo is a fast, secure messaging app. Chat privately, share status updates, and explore public channels — now available on the web." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://web.samvixo.com/" />
+  <meta property="og:title"       content="Samvixo Web – Chat on your computer" />
+  <meta property="og:description" content="Use Samvixo on the web. Scan a QR code with your Android app to start chatting instantly." />
+  <meta property="og:image"       content="logo.png" />
+  <meta property="og:url"         content="https://web.samvixo.com/" />
+  <meta property="og:type"        content="website" />
+  <link rel="icon"             type="image/png"    href="logo.png" />
+  <link rel="shortcut icon"    type="image/x-icon" href="favicon.ico" />
+  <link rel="apple-touch-icon"                     href="logo.png" />
+  <link rel="manifest"                             href="manifest.json" />
+  <meta name="theme-color" content="#7c3aed" />
+
+  <style>
+    :root {
+      --bg:       #0f0f13;
+      --surface:  #1a1a24;
+      --surface2: #22222e;
+      --accent:   #7c3aed;
+      --accent2:  #06b6d4;
+      --text:     #f0f4ff;
+      --sub:      #94a3b8;
+      --border:   #ffffff0f;
+      --msg-me:   #3d1e6b;
+      --msg-other:#1e293b;
+      --online:   #22c55e;
+      --red:      #ef4444;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+    }
+
+    /* LOGIN */
+    #loginScreen {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100vh; background: var(--bg);
+    }
+    .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 44px; }
+    .brand img { width: 54px; height: 54px; border-radius: 14px; object-fit: cover; }
+    .brand-name {
+      font-size: 32px; font-weight: 900;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .login-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 24px; padding: 48px 56px;
+      display: flex; align-items: center; gap: 64px;
+      max-width: 840px; width: 92%;
+      box-shadow: 0 32px 80px #00000060;
+    }
+    .login-left  { flex: 1; display: flex; flex-direction: column; gap: 18px; }
+    .login-left h1 { font-size: 26px; font-weight: 800; line-height: 1.25; }
+    .login-left p  { color: var(--sub); font-size: 15px; line-height: 1.7; }
+    .steps { display: flex; flex-direction: column; gap: 14px; margin-top: 6px; }
+    .step  { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--sub); }
+    .step-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .login-right { display: flex; flex-direction: column; align-items: center; gap: 14px; flex-shrink: 0; }
+
+    .qr-frame {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 16px;
+      width: 280px;
+      height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+      position: relative;
+    }
+    .qr-frame canvas {
+      display: block !important;
+      width: 248px !important;
+      height: 248px !important;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .qr-frame::before, .qr-frame::after {
+      content: '';
+      position: absolute;
+      width: 28px; height: 28px;
+      border-color: var(--accent);
+      border-style: solid;
+      border-radius: 4px;
+    }
+    .qr-frame::before { top: 6px; left: 6px;   border-width: 3px 0 0 3px; }
+    .qr-frame::after  { bottom: 6px; right: 6px; border-width: 0 3px 3px 0; }
+
+    #qrStatus {
+      font-size: 13px; color: var(--sub);
+      text-align: center; min-height: 20px;
+      max-width: 280px;
+    }
+    #qrError  {
+      font-size: 11px; color: var(--red);
+      text-align: center; max-width: 280px;
+      min-height: 16px; word-break: break-all;
+    }
+    #qrRefresh {
+      display: none; background: none;
+      border: 1px solid var(--accent); color: var(--accent);
+      border-radius: 20px; padding: 7px 20px;
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    #qrRefresh:hover { background: var(--accent); color: #fff; }
+
+    #qrCountdown {
+      width: 280px; height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    #qrCountdownFill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      width: 100%;
+      transition: width 60s linear;
+    }
+
+    .login-footer { font-size: 12px; color: var(--sub); text-align: center; margin-top: 2px; }
+
+    /* APP SHELL */
+    #appShell { display: none; flex: 1; overflow: hidden; flex-direction: row; height: 100vh; }
+
+    /* SIDEBAR */
+    #sidebar {
+      width: 360px; min-width: 280px;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; flex-shrink: 0;
+    }
+    #sidebarHeader {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .user-avatar-sm {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px; cursor: pointer; flex-shrink: 0;
+      overflow: hidden;
+    }
+    .user-avatar-sm img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .sidebar-brand {
+      font-size: 18px; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .icon-btn {
+      background: none; border: none; color: var(--sub); cursor: pointer;
+      border-radius: 50%; width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; transition: background .15s;
+    }
+    .icon-btn:hover { background: var(--border); color: var(--text); }
+
+    /* TAB BAR */
+    #tabBar { display: flex; border-bottom: 1px solid var(--border); }
+    .tab-btn {
+      flex: 1; padding: 12px 4px;
+      background: none; border: none; border-bottom: 2px solid transparent;
+      color: var(--sub); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+    }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    #searchBar { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    #searchInput {
+      width: 100%; background: var(--surface2); border: none;
+      border-radius: 20px; padding: 9px 16px; color: var(--text);
+      font-size: 14px; outline: none;
+    }
+    #searchInput::placeholder { color: var(--sub); }
+
+    /* TAB PANELS */
+    #chatsTab, #statusTab, #exploreTab { display: none; flex: 1; flex-direction: column; overflow-y: auto; }
+    #chatsTab.active, #statusTab.active, #exploreTab.active { display: flex; }
+
+    #chatList { flex: 1; overflow-y: auto; }
+    #chatList::-webkit-scrollbar { width: 4px; }
+    #chatList::-webkit-scrollbar-thumb { background: #ffffff15; border-radius: 4px; }
+    .chat-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; cursor: pointer;
+      border-bottom: 1px solid var(--border); transition: background .1s;
+    }
+    .chat-item:hover, .chat-item.active { background: var(--surface2); }
+    .chat-avatar {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700; flex-shrink: 0; position: relative;
+    }
+    .online-dot {
+      position: absolute; bottom: 1px; right: 1px;
+      width: 11px; height: 11px; background: var(--online);
+      border-radius: 50%; border: 2px solid var(--surface);
+    }
+    .chat-info { flex: 1; overflow: hidden; }
+    .chat-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-last { font-size: 12px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .chat-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .chat-time { font-size: 11px; color: var(--sub); }
+    .unread-badge {
+      background: var(--accent); color: #fff;
+      border-radius: 50%; min-width: 18px; height: 18px;
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; padding: 0 4px;
+    }
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 180px; color: var(--sub); font-size: 14px; gap: 8px;
+    }
+    #logoutBtn {
+      padding: 14px 16px; border-top: 1px solid var(--border);
+      font-size: 13px; color: var(--sub); cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+    }
+    #logoutBtn:hover { color: var(--red); }
+
+    /* STATUS TAB */
+    .my-status-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; cursor: pointer; border-bottom: 1px solid var(--border);
+    }
+    .my-status-row:hover { background: var(--surface2); }
+    .status-ring {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      padding: 2px; flex-shrink: 0;
+    }
+    .status-ring.seen { background: var(--sub); }
+    .status-avatar {
+      width: 100%; height: 100%; border-radius: 50%;
+      background: var(--surface2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700;
+    }
+    .status-section-title {
+      padding: 8px 16px; font-size: 11px; font-weight: 700;
+      color: var(--sub); text-transform: uppercase; letter-spacing: 1px;
+      border-bottom: 1px solid var(--border);
+    }
+    #statusList { flex: 1; overflow-y: auto; }
+
+    /* EXPLORE TAB */
+    #exploreSearch {
+      margin: 12px; background: var(--surface2); border: none;
+      border-radius: 20px; padding: 9px 16px; color: var(--text);
+      font-size: 14px; outline: none; width: calc(100% - 24px);
+    }
+    #exploreSearch::placeholder { color: var(--sub); }
+    #catChips { display: flex; gap: 8px; padding: 0 12px 12px; flex-wrap: wrap; }
+    .chip {
+      padding: 6px 14px; border-radius: 20px;
+      border: 1px solid var(--border); background: none;
+      color: var(--sub); font-size: 12px; cursor: pointer; transition: all .2s;
+    }
+    .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    #exploreList { flex: 1; overflow-y: auto; padding: 0 12px 12px; }
+    .channel-card {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 12px; border-radius: 14px;
+      border: 1px solid var(--border); margin-bottom: 10px;
+      background: var(--surface);
+    }
+    .channel-name { font-weight: 700; font-size: 14px; }
+    .channel-desc { font-size: 12px; color: var(--sub); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
+    .channel-meta { font-size: 11px; color: var(--sub); margin-top: 4px; }
+    .join-btn {
+      padding: 7px 18px; border-radius: 20px;
+      background: var(--accent); border: none;
+      color: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
+      transition: opacity .2s; flex-shrink: 0;
+    }
+    .join-btn.joined { background: var(--surface2); color: var(--sub); border: 1px solid var(--border); }
+
+    /* RIGHT PANEL */
+    #rightPanel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    #welcomePane {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; color: var(--sub); gap: 14px;
+    }
+    #welcomePane img { width: 72px; height: 72px; border-radius: 18px; margin-bottom: 4px; object-fit: cover; }
+    #welcomePane h2 { font-size: 22px; font-weight: 700; color: var(--text); }
+    #welcomePane p  { font-size: 14px; max-width: 360px; text-align: center; line-height: 1.6; }
+
+    /* CHAT PANE */
+    #chatPane { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+    #chatHeader {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 20px; border-bottom: 1px solid var(--border);
+      background: var(--surface); flex-shrink: 0;
+    }
+    #backBtn { display: none; background: none; border: none; color: var(--sub); font-size: 20px; cursor: pointer; padding: 4px; }
+    #chatHeaderAvatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px;
+    }
+    #chatHeaderName { font-weight: 700; font-size: 15px; }
+    #chatHeaderSub  { font-size: 12px; color: var(--sub); }
+    #messagesArea {
+      flex: 1; overflow-y: auto; padding: 20px;
+      display: flex; flex-direction: column; gap: 6px; background: var(--bg);
+    }
+    #messagesArea::-webkit-scrollbar { width: 4px; }
+    #messagesArea::-webkit-scrollbar-thumb { background: #ffffff15; border-radius: 4px; }
+    .msg { max-width: 65%; padding: 9px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5; word-break: break-word; }
+    .msg-me    { background: var(--msg-me);    align-self: flex-end;  border-bottom-right-radius: 4px; }
+    .msg-other { background: var(--msg-other); align-self: flex-start; border-bottom-left-radius:  4px; }
+    .msg-time   { font-size: 10px; color: var(--sub); margin-top: 4px; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 3px; }
+    .msg-sender { font-size: 11px; color: var(--accent2); font-weight: 600; margin-bottom: 2px; }
+    .tick       { font-size: 11px; font-weight: 700; }
+    .msg-img    { max-width: 220px; border-radius: 10px; margin-bottom: 4px; display: block; cursor: pointer; }
+    .typing-indicator { font-size: 12px; color: var(--accent2); padding: 0 20px 4px; height: 18px; }
+    #inputBar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 20px; border-top: 1px solid var(--border);
+      background: var(--surface); flex-shrink: 0;
+    }
+    .attach-btn { background: none; border: none; color: var(--sub); font-size: 20px; cursor: pointer; padding: 4px; flex-shrink: 0; }
+    .attach-btn:hover { color: var(--accent); }
+    #msgInput {
+      flex: 1; background: var(--surface2); border: none;
+      border-radius: 24px; padding: 12px 18px;
+      color: var(--text); font-size: 14px; outline: none;
+      resize: none; max-height: 120px; line-height: 1.4; font-family: inherit;
+    }
+    #msgInput::placeholder { color: var(--sub); }
+    #sendBtn {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; color: #fff; font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: opacity .15s;
+    }
+    #sendBtn:hover { opacity: .85; }
+
+    /* STATUS VIEW PANE */
+    #statusViewPane {
+      display: none; flex: 1; flex-direction: column;
+      background: #000; position: relative; align-items: center; justify-content: center;
+    }
+    #statusViewImg { max-width: 100%; max-height: calc(100vh - 120px); object-fit: contain; }
+    #statusViewHeader {
+      position: absolute; top: 0; left: 0; right: 0;
+      padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+      background: linear-gradient(#000a, transparent);
+    }
+    #statusProgressBar { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #ffffff30; }
+    #statusProgressFill { height: 100%; background: var(--accent); width: 0; }
+    #statusViewUser  { font-weight: 700; font-size: 15px; }
+    #statusViewTime  { font-size: 12px; color: var(--sub); }
+    #statusViewCaption {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 16px 20px; background: linear-gradient(transparent, #000a);
+      font-size: 14px; color: #fff;
+    }
+    .status-close-btn { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; }
+
+    /* PROFILE PHOTO */
+    .profile-photo-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      margin-bottom: 4px;
+    }
+    .profile-photo-circle {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; font-weight: 700; overflow: hidden; cursor: pointer;
+      position: relative; border: 3px solid var(--accent);
+    }
+    .profile-photo-circle img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .profile-photo-circle .photo-overlay {
+      position: absolute; inset: 0; background: #0008;
+      display: none; align-items: center; justify-content: center;
+      font-size: 20px; border-radius: 50%;
+    }
+    .profile-photo-circle:hover .photo-overlay { display: flex; }
+    .photo-change-hint { font-size: 12px; color: var(--sub); }
+    #photoUploadProgress {
+      font-size: 12px; color: var(--accent2); min-height: 18px; text-align: center;
+    }
+
+    /* MODALS */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: #0009; z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--surface); border-radius: 20px;
+      padding: 28px 32px; width: 94%; max-width: 440px;
+      display: flex; flex-direction: column; gap: 16px;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-title  { font-size: 18px; font-weight: 800; }
+    .modal-input  { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 10px; padding: 10px 14px; font-size: 14px; outline: none; }
+    .modal-input:focus { border-color: var(--accent); }
+    .modal-row    { display: flex; gap: 10px; }
+    .modal-btn    { flex: 1; padding: 11px; border: none; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .modal-btn-primary   { background: var(--accent); color: #fff; }
+    .modal-btn-secondary { background: var(--surface2); color: var(--text); }
+    .modal-label  { font-size: 12px; color: var(--sub); margin-bottom: -8px; }
+    #userSearchResults { max-height: 260px; overflow-y: auto; margin-top: 4px; }
+
+    /* UPLOAD TOAST */
+    #uploadStatusModal {
+      display: none; position: fixed;
+      bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 24px;
+      font-size: 14px; z-index: 200;
+      box-shadow: 0 8px 32px #00000060;
+    }
+    #uploadStatusModal.open { display: block; }
+
+    /* SPINNER */
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #7c3aed30;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* RESPONSIVE */
+    @media (max-width: 640px) {
+      .login-card { flex-direction: column; gap: 32px; padding: 32px 24px; }
+      #sidebar { width: 100%; }
+      #rightPanel { display: none; }
+      #appShell.chat-open #sidebar    { display: none; }
+      #appShell.chat-open #rightPanel { display: flex; }
+      #backBtn { display: inline-flex !important; }
+      .qr-frame { width: 240px; height: 240px; padding: 12px; }
+      .qr-frame canvas { width: 216px !important; height: 216px !important; }
+      #qrCountdown { width: 240px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="brand">
+    <img src="logo.png" alt="Samvixo" onerror="this.style.display='none'" />
+    <span class="brand-name">Samvixo</span>
+  </div>
+  <div class="login-card">
+    <div class="login-left">
+      <h1>Use Samvixo on your computer</h1>
+      <p>Scan the QR code with your Samvixo Android app to instantly start chatting on the web.</p>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div>Open <strong>&nbsp;Samvixo&nbsp;</strong> on your phone</div>
+        <div class="step"><div class="step-num">2</div>Go to <strong>&nbsp;Settings → Linked Devices</strong></div>
+        <div class="step"><div class="step-num">3</div>Tap <strong>&nbsp;Link a Device</strong> and scan this QR</div>
+      </div>
+    </div>
+    <div class="login-right">
+      <div class="qr-frame" id="qrFrame"><div class="spinner"></div></div>
+      <div id="qrCountdown"><div id="qrCountdownFill"></div></div>
+      <div id="qrStatus">Generating QR code…</div>
+      <div id="qrError"></div>
+      <button id="qrRefresh" onclick="generateQR()">&#8635; Refresh QR</button>
+      <div class="login-footer">QR refreshes every 60 seconds</div>
+    </div>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="appShell">
+  <div id="sidebar">
+    <div id="sidebarHeader">
+      <div class="user-avatar-sm" id="myAvatar" title="Profile" onclick="openProfileModal()">?</div>
+      <span class="sidebar-brand">Samvixo</span>
+      <div style="display:flex;gap:4px">
+        <button class="icon-btn" title="New Chat" onclick="openNewChatModal()">✏️</button>
+        <button class="icon-btn" title="Logout"   onclick="logout()">🚵</button>
+      </div>
+    </div>
+    <div id="tabBar">
+      <button class="tab-btn active" id="tabChats"   onclick="switchTab('chats')">💬 Chats</button>
+      <button class="tab-btn"        id="tabStatus"  onclick="switchTab('status')">🔵 Status</button>
+      <button class="tab-btn"        id="tabExplore" onclick="switchTab('explore')">🔍 Explore</button>
+    </div>
+    <div id="chatsTab" class="active">
+      <div id="searchBar"><input id="searchInput" type="text" placeholder="Search chats…" oninput="filterChats()" /></div>
+      <div id="chatList"><div class="empty-state"><div class="spinner"></div><span>Loading chats…</span></div></div>
+    </div>
+    <div id="statusTab">
+      <div class="my-status-row" onclick="addStatus()">
+        <div class="status-ring"><div class="status-avatar" id="myStatusAvatar">?</div></div>
+        <div class="chat-info">
+          <div class="chat-name">My Status</div>
+          <div class="chat-last" id="myStatusSub">Tap to add status update</div>
+        </div>
+      </div>
+      <div class="status-section-title">Recent Updates</div>
+      <div id="statusList"></div>
+    </div>
+    <div id="exploreTab">
+      <input id="exploreSearch" type="text" placeholder="Search channels…" oninput="filterChannels()" />
+      <div id="catChips"></div>
+      <div id="exploreList"></div>
+    </div>
+    <div id="logoutBtn" onclick="logout()">🚵 Log out</div>
+  </div>
+
+  <div id="rightPanel">
+    <div id="welcomePane">
+      <img src="logo.png" alt="Samvixo" onerror="this.style.display='none'" />
+      <h2>Samvixo Web</h2>
+      <p>Select a chat on the left to start messaging.</p>
+      <p style="font-size:12px;margin-top:4px;color:#4b5563">🔐 End-to-end encrypted</p>
+    </div>
+    <div id="chatPane">
+      <div id="chatHeader">
+        <button id="backBtn" onclick="closeChat()">‹</button>
+        <div id="chatHeaderAvatar">?</div>
+        <div style="flex:1">
+          <div id="chatHeaderName">Chat</div>
+          <div id="chatHeaderSub">Loading…</div>
+        </div>
+      </div>
+      <div id="messagesArea"></div>
+      <div class="typing-indicator" id="typingIndicator"></div>
+      <div id="inputBar">
+        <label class="attach-btn" title="Send image">
+          📎
+          <input type="file" accept="image/*" style="display:none" onchange="sendImageMessage(this)" />
+        </label>
+        <textarea id="msgInput" placeholder="Type a message…" rows="1"
+          onkeydown="handleKey(event)" oninput="autoResize(this);sendTyping()"></textarea>
+        <button id="sendBtn" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+    <div id="statusViewPane">
+      <div id="statusProgressBar"><div id="statusProgressFill"></div></div>
+      <div id="statusViewHeader">
+        <div>
+          <div id="statusViewUser">User</div>
+          <div id="statusViewTime"></div>
+        </div>
+      </div>
+      <img id="statusViewImg" src="" alt="status" />
+      <div id="statusViewCaption"></div>
+      <button class="status-close-btn" onclick="closeStatusView()">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal-box">
+    <div class="modal-title">👤 My Profile</div>
+
+    <!-- ── Profile photo ── -->
+    <div class="profile-photo-wrap">
+      <label class="profile-photo-circle" id="profilePhotoCircle" title="Change photo">
+        <span id="profilePhotoInitial">?</span>
+        <img id="profilePhotoImg" src="" alt="" style="display:none" />
+        <div class="photo-overlay">📷</div>
+        <input type="file" id="profilePhotoPicker" accept="image/*" style="display:none"
+               onchange="uploadProfilePhoto(this)" />
+      </label>
+      <div class="photo-change-hint">Tap to change photo</div>
+      <div id="photoUploadProgress"></div>
+    </div>
+
+    <div class="modal-label">Phone</div>
+    <div id="profilePhone" style="font-size:14px;color:var(--sub);padding:4px 0"></div>
+    <div class="modal-label">Display Name</div>
+    <input class="modal-input" id="profileName"  type="text" placeholder="Your name" />
+    <div class="modal-label">About</div>
+    <input class="modal-input" id="profileAbout" type="text" placeholder="About me…" />
+    <div class="modal-row">
+      <button class="modal-btn modal-btn-secondary" onclick="closeProfileModal()">Cancel</button>
+      <button class="modal-btn modal-btn-primary"   onclick="saveProfile()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW CHAT MODAL -->
+<div class="modal-overlay" id="newChatModal">
+  <div class="modal-box">
+    <div class="modal-title">✏️ New Chat</div>
+    <input class="modal-input" id="newChatSearch" type="text"
+      placeholder="Search by name or phone…" oninput="searchUsers()" />
+    <div id="userSearchResults"></div>
+    <div class="modal-row" style="margin-top:8px">
+      <button class="modal-btn modal-btn-secondary"
+        onclick="document.getElementById('newChatModal').classList.remove('open')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPLOAD TOAST -->
+<div id="uploadStatusModal">Uploading…</div>
+
+<!-- Hidden file input for status -->
+<input type="file" id="statusFilePicker" accept="image/*" style="display:none" onchange="uploadStatus(this)" />
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+<!--
+  qrcode-generator by kazuhikoarase - battle-tested, no dependencies,
+  renders pure black-on-white modules via canvas. CDN: jsDelivr (stable).
+-->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+
+<!-- App logic -->
+<script src="app.js"></script>
+</body>
+</html>

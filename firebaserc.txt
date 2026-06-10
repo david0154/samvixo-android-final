@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "samvixo"
+  },
+  "targets": {
+    "samvixo": {
+      "hosting": {
+        "app":       ["samvixo-app"],
+        "admin":     ["samvixo-admin"],
+        "marketing": ["samvixo-marketing"]
+      }
+    }
+  }
+}

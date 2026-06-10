@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Samvixo Admin</title>
+  <link rel="icon" href="favicon.ico" />
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <style>
+    /* ── GOOGLE FONT – loaded first, synchronously via @import ── */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --purple:#7c3aed;--purple-light:#ede9fe;
+      --cyan:#06b6d4;--green:#22c55e;--red:#ef4444;
+      --orange:#f59e0b;--blue:#3b82f6;
+      --bg:#f8f5ff;--surface:#fff;--border:#e5e7eb;
+      --text:#1a1a2e;--muted:#6b7280;
+    }
+    body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+
+    /* ── LOADING SCREEN ── */
+    #loadingScreen{
+      display:flex;align-items:center;justify-content:center;height:100vh;
+      background:linear-gradient(135deg,#1a0533,#0d1b4b);flex-direction:column;gap:16px;
+    }
+    .load-logo{font-size:52px}
+    .load-text{color:#fff;font-size:16px;font-weight:600;opacity:.8}
+    .load-spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,.2);border-top:3px solid #a78bfa;border-radius:50%;animation:spin .8s linear infinite}
+
+    /* ── LOGIN ── */
+    #loginWrap{display:none;align-items:center;justify-content:center;height:100vh;
+      background:linear-gradient(135deg,#1a0533,#0d1b4b)}
+    .login-card{background:#fff;border-radius:24px;padding:40px 36px;width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+    .login-logo{font-size:48px;margin-bottom:6px}
+    .login-title{font-size:24px;font-weight:700;margin-bottom:2px}
+    .login-sub{font-size:12px;color:var(--muted);margin-bottom:24px}
+    .login-badge{display:inline-block;background:#fef3c7;color:#92400e;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:20px}
+    .inp{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;transition:border .2s;margin-bottom:10px;font-family:inherit;color:var(--text)}
+    .inp:focus{border-color:var(--purple)}
+    .btn-primary{width:100%;padding:13px;background:var(--purple);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .2s}
+    .btn-primary:hover{opacity:.9}
+    .otp-inp{letter-spacing:12px;font-size:24px;font-weight:700;text-align:center}
+    .err{color:var(--red);font-size:12px;margin-top:4px;min-height:18px;text-align:center}
+    .otp-info{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 14px;font-size:13px;color:#0369a1;margin:10px 0;text-align:left}
+    .back-link{background:none;border:none;color:var(--purple);cursor:pointer;font-size:13px;margin-top:8px;text-decoration:underline}
+    .hidden{display:none!important}
+
+    /* ── DASHBOARD ── */
+    #dashboard{display:none;height:100vh;overflow:hidden}
+    .shell{display:flex;height:100vh}
+
+    /* Sidebar */
+    .sidebar{width:240px;background:linear-gradient(180deg,#1a0533,#0d1b4b);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+    .sidebar-brand{padding:20px 18px 14px;border-bottom:1px solid rgba(255,255,255,.1)}
+    .brand-name{font-size:18px;font-weight:700;color:#fff}
+    .brand-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
+    .admin-info{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px}
+    .admin-avatar{width:36px;height:36px;border-radius:50%;background:var(--purple);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+    .admin-name{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .role-tag{font-size:10px;border-radius:10px;padding:1px 8px;font-weight:600;display:inline-block;margin-top:2px}
+    .role-super_admin{background:#fbbf24;color:#78350f}
+    .role-superadmin{background:#fbbf24;color:#78350f}
+    .role-second_admin{background:#818cf8;color:#fff}
+    .role-tech_team{background:#34d399;color:#065f46}
+    .role-support_team{background:#94a3b8;color:#1e293b}
+    .nav-section{padding:14px 12px 4px;font-size:10px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-radius:8px;margin:1px 6px;color:rgba(255,255,255,.7);font-size:13px;font-weight:500;transition:all .2s;text-decoration:none;user-select:none}
+    .nav-item:hover,.nav-item.active{background:rgba(124,58,237,.4);color:#fff}
+    .nav-item .ico{width:18px;text-align:center;font-size:15px}
+    .nav-badge{margin-left:auto;background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700}
+    .sidebar-footer{margin-top:auto;padding:14px 12px}
+    .logout-btn{width:100%;padding:9px;background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all .2s}
+    .logout-btn:hover{background:rgba(239,68,68,.3)}
+
+    /* Main */
+    .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+    .topbar-title{font-size:18px;font-weight:700}
+    .topbar-right{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted)}
+    .page-wrap{flex:1;overflow-y:auto;padding:24px}
+
+    /* Pages */
+    .page{display:none}
+    .page.active{display:block}
+
+    /* Stats grid */
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:24px}
+    .stat-card{background:var(--surface);border-radius:14px;padding:18px;border:1px solid var(--border);position:relative;overflow:hidden}
+    .stat-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 60%,rgba(124,58,237,.05));pointer-events:none}
+    .stat-icon{font-size:24px;margin-bottom:8px}
+    .stat-val{font-size:28px;font-weight:700;line-height:1}
+    .stat-lbl{font-size:12px;color:var(--muted);margin-top:4px}
+
+    /* Cards */
+    .card{background:var(--surface);border-radius:14px;border:1px solid var(--border);margin-bottom:20px;overflow:hidden}
+    .card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .card-title{font-size:15px;font-weight:700}
+    .card-body{padding:20px}
+
+    /* Tables */
+    .tbl-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{padding:9px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--border)}
+    td{padding:10px 14px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:#f8f5ff}
+    .empty{text-align:center;color:var(--muted);padding:20px!important}
+
+    /* Badges */
+    .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#f1f5f9;color:var(--muted)}
+    .badge-active{background:#dcfce7;color:#16a34a}
+    .badge-banned{background:#fee2e2;color:#dc2626}
+    .badge-open{background:#fef3c7;color:#d97706}
+    .badge-resolved{background:#dcfce7;color:#16a34a}
+    .badge-super{background:#fbbf24;color:#78350f}
+    .badge-second{background:#818cf8;color:#fff}
+    .badge-tech{background:#34d399;color:#065f46}
+    .badge-support{background:#94a3b8;color:#1e293b}
+    .badge-warn{background:#fef3c7;color:#d97706}
+    .badge-danger{background:#fee2e2;color:#dc2626}
+    .badge-purple{background:#ede9fe;color:#7c3aed}
+    .badge-success{background:#dcfce7;color:#16a34a}
+    .badge-info{background:#e0f2fe;color:#0369a1}
+
+    /* Buttons */
+    .btn-sm{padding:4px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:opacity .2s;font-family:inherit}
+    .btn-sm:hover{opacity:.8}
+    .btn-sm:disabled{opacity:.4;cursor:not-allowed}
+    .btn-danger{background:#fee2e2;color:#dc2626}
+    .btn-success{background:#dcfce7;color:#16a34a}
+    .btn-info{background:#e0f2fe;color:#0369a1}
+    .btn-warn{background:#fef3c7;color:#d97706}
+    .btn-purple{background:var(--purple-light);color:var(--purple)}
+    .btn-accent{background:var(--purple);color:#fff}
+
+    /* Form elements */
+    .form-group{margin-bottom:14px}
+    .form-label{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px;display:block}
+    .form-inp{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;font-family:inherit;transition:border .2s;background:#fff;color:var(--text)}
+    .form-inp:focus{border-color:var(--purple)}
+    .form-select{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;background:#fff;cursor:pointer;color:var(--text);font-family:inherit}
+    .form-textarea{resize:vertical;min-height:90px}
+    .btn-action{padding:10px 24px;background:var(--purple);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s;font-family:inherit}
+    .btn-action:hover{opacity:.9}
+    .status-msg{font-size:13px;font-weight:600;min-height:22px;margin-top:8px}
+    .ok{color:var(--green)}
+    .err-inline{color:var(--red)}
+
+    /* Search bar */
+    .search-inp{padding:9px 14px;border:1.5px solid var(--border);border-radius:24px;font-size:13px;outline:none;transition:border .2s;font-family:inherit}
+    .search-inp:focus{border-color:var(--purple)}
+
+    /* Analytics chart */
+    .chart-wrap{display:flex;gap:4px;align-items:flex-end;height:100px;padding-bottom:2px}
+    .bar{background:linear-gradient(to top,var(--purple),var(--cyan));border-radius:4px 4px 0 0;flex:1;min-height:4px;transition:height .4s;cursor:pointer}
+    .chart-labels{display:flex;gap:4px;margin-top:4px}
+    .chart-label{flex:1;text-align:center;font-size:10px;color:var(--muted)}
+
+    /* Toggle switch */
+    .toggle-wrap{display:flex;align-items:center;gap:12px}
+    .toggle-track{width:48px;height:26px;border-radius:13px;background:#e2e8f0;position:relative;cursor:pointer;transition:background .2s}
+    .toggle-track.on{background:var(--green)}
+    .toggle-track.red-on.on{background:var(--red)}
+    .toggle-thumb{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);transition:left .2s}
+    .toggle-track.on .toggle-thumb{left:25px}
+    .toggle-label{font-size:14px;font-weight:600}
+
+    /* Toggle checkbox style */
+    .toggle-cb{position:relative;width:44px;height:24px;flex-shrink:0;display:inline-block}
+    .toggle-cb input{opacity:0;width:0;height:0;position:absolute}
+    .slider{position:absolute;inset:0;background:#cbd5e1;border-radius:99px;cursor:pointer;transition:.2s}
+    .slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+    .toggle-cb input:checked+.slider{background:var(--purple)}
+    .toggle-cb input:checked+.slider:before{transform:translateX(20px)}
+
+    /* Overview 2-col grid */
+    .overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media(max-width:900px){.overview-grid{grid-template-columns:1fr}}
+
+    /* Modals */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal{background:#fff;border-radius:20px;padding:28px;width:500px;max-width:95vw;max-height:85vh;overflow-y:auto}
+    .modal h3{font-size:18px;font-weight:700;margin-bottom:16px}
+    .detail-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+    .detail-label{color:var(--muted);font-weight:600}
+    .modal-close-btn{width:100%;margin-top:16px;padding:10px;border:1.5px solid var(--border);background:#fff;border-radius:10px;cursor:pointer;font-size:14px;font-family:inherit}
+    .modal-actions{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
+    .modal-cancel{padding:9px 18px;background:#f1f5f9;color:var(--text);border:none;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit}
+
+    /* AI suggestion */
+    .ai-suggestion{background:#ede9fe;border:1px solid #c4b5fd;border-radius:8px;padding:12px;margin-top:8px;font-size:13px;line-height:1.6;white-space:pre-wrap;color:var(--text)}
+
+    /* Sched badge */
+    .sched-badge{background:#ede9fe;color:#7c3aed;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:600;display:inline-block}
+
+    /* Toast */
+    #toast{position:fixed;bottom:24px;right:24px;background:#1a1a2e;color:#fff;border-radius:12px;padding:12px 20px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.2);max-width:320px}
+    #toast.show{opacity:1}
+
+    /* Spinner */
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top:2px solid var(--purple);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:4px}
+  </style>
+</head>
+<body>
+
+<!-- ══ LOADING SCREEN ══ -->
+<div id="loadingScreen">
+  <div class="load-spinner"></div>
+  <div class="load-text">Samvixo Admin</div>
+</div>
+
+<!-- ══ LOGIN ══ -->
+<div id="loginWrap">
+  <div class="login-card">
+    <div class="login-logo">🛡️</div>
+    <div class="login-title">Admin Portal</div>
+    <div class="login-sub">Samvixo Control Center</div>
+    <div class="login-badge">🔒 Authorized Personnel Only</div>
+
+    <div id="step1">
+      <!-- FIXED: type="email" so @ symbol works; placeholder updated -->
+      <input id="adminPhone" class="inp" type="email" placeholder="Admin Email" autocomplete="email" />
+      <input id="adminPass" class="inp" type="password" placeholder="Password" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')window.adminLogin()" />
+      <button class="btn-primary" onclick="window.adminLogin()">Login →</button>
+      <div id="err1" class="err"></div>
+    </div>
+
+    <div id="step2" class="hidden">
+      <div id="otpInfo" class="otp-info">Enter the 6-digit code.</div>
+      <input id="otpCode" class="inp otp-inp" type="tel" maxlength="6" placeholder="――――――" />
+      <button class="btn-primary" onclick="window.verify2FA()">Verify &amp; Enter</button>
+      <div id="err2" class="err"></div>
+      <button class="back-link" onclick="window.backToStep1()">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DASHBOARD ══ -->
+<div id="dashboard">
+  <div class="shell">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-name">💬 Samvixo</div>
+        <div class="brand-sub">Admin Control Center</div>
+      </div>
+      <div class="admin-info">
+        <div class="admin-avatar" id="adminInitial">A</div>
+        <div>
+          <div class="admin-name" id="adminName">Admin</div>
+          <span class="role-tag" id="roleTag">Role</span>
+        </div>
+      </div>
+
+      <div class="nav-section">Overview</div>
+      <a class="nav-item active" id="nav-overview" onclick="window.showPage('overview')"><span class="ico">📊</span> Overview</a>
+
+      <div class="nav-section">Users</div>
+      <a class="nav-item" id="nav-users" onclick="window.showPage('users')"><span class="ico">👥</span> All Users</a>
+      <a class="nav-item" id="nav-banned" onclick="window.showPage('banned')"><span class="ico">🚫</span> Banned Users</a>
+      <a class="nav-item" id="nav-online" onclick="window.showPage('online')"><span class="ico">🟢</span> Online Now</a>
+
+      <div class="nav-section">Moderation</div>
+      <a class="nav-item" id="nav-reports" onclick="window.showPage('reports')">
+        <span class="ico">⚠️</span> Reports
+        <span class="nav-badge" id="badge-reports">0</span>
+      </a>
+      <a class="nav-item" id="nav-trust" onclick="window.showPage('trust')"><span class="ico">🛡️</span> Trust Scores</a>
+      <a class="nav-item" id="nav-screenshots" onclick="window.showPage('screenshots')"><span class="ico">📸</span> Screenshot Alerts</a>
+
+      <div class="nav-section">Communication</div>
+      <a class="nav-item" id="nav-broadcast" onclick="window.showPage('broadcast')"><span class="ico">📢</span> Broadcast</a>
+      <a class="nav-item" id="nav-notifs" onclick="window.showPage('notifs')"><span class="ico">🔔</span> Push Notifs</a>
+      <a class="nav-item" id="nav-officialstatus" onclick="window.showPage('officialstatus')"><span class="ico">📣</span> Official Status</a>
+      <a class="nav-item" id="nav-scheduled" onclick="window.showPage('scheduled')"><span class="ico">⏰</span> Scheduled Items</a>
+
+      <div class="nav-section">Support</div>
+      <a class="nav-item" id="nav-contactrequests" onclick="window.showPage('contactrequests')">
+        <span class="ico">📩</span> Contact Requests
+        <span class="nav-badge" id="badge-contacts">0</span>
+      </a>
+
+      <div class="nav-section">App Content</div>
+      <a class="nav-item" id="nav-terms" onclick="window.showPage('terms')"><span class="ico">📜</span> Terms &amp; Conditions</a>
+      <a class="nav-item" id="nav-privacy" onclick="window.showPage('privacy')"><span class="ico">🔐</span> Privacy Policy</a>
+
+      <div class="nav-section" id="nav-section-team">Team</div>
+      <a class="nav-item" id="nav-team" onclick="window.showPage('team')"><span class="ico">🛡️</span> Admin Team</a>
+
+      <div class="nav-section">Data</div>
+      <a class="nav-item" id="nav-analytics" onclick="window.showPage('analytics')"><span class="ico">📈</span> Analytics</a>
+      <a class="nav-item" id="nav-logs" onclick="window.showPage('logs')"><span class="ico">📋</span> Audit Logs</a>
+
+      <div class="nav-section">System</div>
+      <a class="nav-item" id="nav-settings" onclick="window.showPage('settings')"><span class="ico">⚙️</span> App Settings</a>
+      <a class="nav-item" id="nav-config" onclick="window.showPage('config')"><span class="ico">🔑</span> Remote Config</a>
+      <a class="nav-item" id="nav-admob" onclick="window.showPage('admob')"><span class="ico">💰</span> AdMob Flags</a>
+      <a class="nav-item" id="nav-languages" onclick="window.showPage('languages')"><span class="ico">🌐</span> Languages</a>
+      <a class="nav-item" id="nav-ratelimit" onclick="window.showPage('ratelimit')"><span class="ico">🚦</span> Rate Limiting</a>
+
+      <div class="sidebar-footer">
+        <button class="logout-btn" onclick="window.adminLogout()">🚪 Logout</button>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-title" id="pageTitle">Overview</div>
+        <div class="topbar-right">
+          <span id="clockDisplay"></span>
+          <span style="color:var(--green);font-weight:600">● Live</span>
+        </div>
+      </div>
+
+      <div class="page-wrap">
+
+        <!-- OVERVIEW -->
+        <div class="page active" id="page-overview">
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-icon">👤</div><div class="stat-val" id="statUsers">…</div><div class="stat-lbl">Total Users</div></div>
+            <div class="stat-card"><div class="stat-icon">🟢</div><div class="stat-val" id="statOnline">…</div><div class="stat-lbl">Online Now</div></div>
+            <div class="stat-card"><div class="stat-icon">⚠️</div><div class="stat-val" id="statReports">…</div><div class="stat-lbl">Open Reports</div></div>
+            <div class="stat-card"><div class="stat-icon">🚫</div><div class="stat-val" id="statBanned">…</div><div class="stat-lbl">Banned Users</div></div>
+            <div class="stat-card"><div class="stat-icon">📡</div><div class="stat-val" id="statChannels">…</div><div class="stat-lbl">Public Channels</div></div>
+            <div class="stat-card"><div class="stat-icon">🛡️</div><div class="stat-val" id="statTeam">…</div><div class="stat-lbl">Admin Team</div></div>
+            <div class="stat-card"><div class="stat-icon">📸</div><div class="stat-val" id="statScreenshots">…</div><div class="stat-lbl">Screenshot Alerts (24h)</div></div>
+            <div class="stat-card"><div class="stat-icon">📩</div><div class="stat-val" id="statContactOpen">…</div><div class="stat-lbl">Open Contact Requests</div></div>
+            <div class="stat-card"><div class="stat-icon">⏰</div><div class="stat-val" id="statScheduled">…</div><div class="stat-lbl">Scheduled Items</div></div>
+          </div>
+          <div class="overview-grid">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Recent Signups</div></div>
+              <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Joined</th></tr></thead>
+              <tbody id="recentSignups"><tr><td colspan="3" class="empty">Loading…</td></tr></tbody></table></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Open Reports</div></div>
+              <div class="tbl-wrap"><table><thead><tr><th>Reporter</th><th>Reason</th><th>Date</th></tr></thead>
+              <tbody id="latestReports"><tr><td colspan="3" class="empty">Loading…</td></tr></tbody></table></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- USERS -->
+        <div class="page" id="page-users">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">All Users</div>
+              <input class="search-inp" id="userSearch" placeholder="Search name or phone…" oninput="window.filterUsers()" style="width:220px" />
+            </div>
+            <div class="tbl-wrap">
+              <table><thead><tr><th>Name</th><th>Phone</th><th>UID</th><th>Joined</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="usersBody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- BANNED USERS -->
+        <div class="page" id="page-banned">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Banned Users</div></div>
+            <div class="tbl-wrap">
+              <table><thead><tr><th>Name</th><th>Phone</th><th>Banned On</th><th>Reason</th><th>Action</th></tr></thead>
+              <tbody id="bannedBody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ONLINE NOW -->
+        <div class="page" id="page-online">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🟢 Online Users (last 5 min)</div>
+              <button class="btn-sm btn-info" onclick="window.loadOnlineUsers()">↻ Refresh</button>
+            </div>
+            <div class="tbl-wrap">
+              <table><thead><tr><th>Name</th><th>Phone</th><th>Last Seen</th></tr></thead>
+              <tbody id="onlineBody"><tr><td colspan="3" class="empty">Loading…</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- REPORTS -->
+        <div class="page" id="page-reports">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">User Reports</div>
+              <select class="form-select" style="width:140px" onchange="window.filterReports(this.value)">
+                <option value="all">All</option><option value="open">Open</option><option value="resolved">Resolved</option>
+              </select>
+            </div>
+            <p style="font-size:13px;color:var(--muted);padding:12px 20px 0">Users with 6+ reports are auto-queued. Actions: <strong>Resolve</strong>, <strong>Red Flag</strong>, <strong>Suspend</strong>, <strong>Ban</strong>.</p>
+            <div class="tbl-wrap">
+              <table><thead><tr><th>Reporter</th><th>Reason</th><th>Against</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="reportsBody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TRUST SCORES -->
+        <div class="page" id="page-trust">
+          <div class="card">
+            <div class="card-header"><div class="card-title">🔍 Search User Trust Score</div></div>
+            <div class="card-body">
+              <div style="display:flex;gap:10px">
+                <input class="form-inp" id="trustSearchUid" placeholder="Enter User UID" style="max-width:340px" />
+                <button class="btn-action" onclick="window.lookupTrust()">Look Up</button>
+              </div>
+              <div id="trustResult" style="margin-top:16px"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Low Trust Score Users (&lt; 30)</div></div>
+            <div class="tbl-wrap">
+              <table><thead><tr><th>User ID</th><th>Trust Score</th><th>Reports</th><th>Restricted</th><th>Action</th></tr></thead>
+              <tbody id="lowTrustBody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCREENSHOT ALERTS -->
+        <div class="page" id="page-screenshots">
+          <div class="card">
+            <div class="card-header"><div class="card-title">📸 Screenshot Alerts</div></div>
+            <div class="tbl-wrap">
+              <table><thead><tr><th>Chat ID</th><th>Taker</th><th>Target UID</th><th>Time</th><th>Action</th></tr></thead>
+              <tbody id="screenshotBody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- BROADCAST -->
+        <div class="page" id="page-broadcast">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div class="card">
+              <div class="card-header"><div class="card-title">📢 Send Broadcast</div></div>
+              <div class="card-body">
+                <div class="form-group"><label class="form-label">Title</label><input class="form-inp" id="bcTitle" placeholder="Announcement title" /></div>
+                <div class="form-group"><label class="form-label">Message</label><textarea class="form-inp form-textarea" id="bcBody" placeholder="Your message…"></textarea></div>
+                <div class="form-group"><label class="form-label">Target</label>
+                  <select class="form-select" id="bcTarget">
+                    <option value="all">All Users</option><option value="android">Android Only</option><option value="web">Web Only</option>
+                  </select>
+                </div>
+                <button class="btn-action" onclick="window.sendBroadcast()">📤 Send Broadcast</button>
+                <div id="bcStatus" class="status-msg"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Broadcast History</div></div>
+              <div class="tbl-wrap">
+                <table><thead><tr><th>Title</th><th>Target</th><th>Sent By</th><th>Date</th><th>Reach</th></tr></thead>
+                <tbody id="bcHistoryBody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody></table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PUSH NOTIFS -->
+        <div class="page" id="page-notifs">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div class="card">
+              <div class="card-header"><div class="card-title">🔔 Send Push Notification</div></div>
+              <div class="card-body">
+                <div class="form-group"><label class="form-label">Title</label><input class="form-inp" id="pnTitle" placeholder="Notification title" /></div>
+                <div class="form-group"><label class="form-label">Body</label><textarea class="form-inp form-textarea" id="pnBody" placeholder="Notification text…" style="min-height:70px"></textarea></div>
+                <div class="form-group"><label class="form-label">Target Topic</label>
+                  <select class="form-select" id="pnTarget" onchange="window.togglePnUid(this.value)">
+                    <option value="all_users">All Users</option><option value="android_users">Android Users</option>
+                    <option value="beta_users">Beta Users</option><option value="uid">Specific User (UID)</option>
+                  </select>
+                </div>
+                <div class="form-group hidden" id="pnUidRow"><label class="form-label">User UID</label><input class="form-inp" id="pnUid" placeholder="Paste UID here" /></div>
+                <div class="form-group"><label class="form-label">📅 Schedule For (optional)</label><input class="form-inp" type="datetime-local" id="pnScheduleAt" /></div>
+                <div style="display:flex;gap:10px">
+                  <button class="btn-action" onclick="window.sendPushNotif(false)">📤 Send Now</button>
+                  <button class="btn-action" style="background:var(--green)" onclick="window.sendPushNotif(true)">⏰ Schedule</button>
+                </div>
+                <div id="pnStatus" class="status-msg"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">📋 Scheduled Notifications</div></div>
+              <div class="tbl-wrap">
+                <table><thead><tr><th>Title</th><th>Topic</th><th>Scheduled For</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="scheduledNotifBody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody></table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- OFFICIAL STATUS -->
+        <div class="page" id="page-officialstatus">
+          <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:16px">
+            <div class="card">
+              <div class="card-header"><div class="card-title">📣 Post Official Status</div></div>
+              <div class="card-body">
+                <div class="form-group"><label class="form-label">Author Name</label><input class="form-inp" id="osAuthor" value="Samvixo Team" /></div>
+                <div class="form-group"><label class="form-label">Status Text</label><textarea class="form-inp form-textarea" id="osText" placeholder="What's the update?…"></textarea></div>
+                <div class="form-group"><label class="form-label">Media URL (optional)</label><input class="form-inp" id="osMedia" placeholder="https://…" /></div>
+                <div class="form-group"><label class="form-label">📅 Schedule For (optional)</label><input class="form-inp" type="datetime-local" id="osScheduleAt" /></div>
+                <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Leave blank to post immediately.</p>
+                <div style="display:flex;gap:10px">
+                  <button class="btn-action" onclick="window.postOfficialStatus(false)">📣 Post Now</button>
+                  <button class="btn-action" style="background:var(--green)" onclick="window.postOfficialStatus(true)">⏰ Schedule</button>
+                </div>
+                <div id="osStatus" class="status-msg"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Published Statuses</div></div>
+              <div class="tbl-wrap">
+                <table><thead><tr><th>Author</th><th>Text</th><th>Posted At</th><th>Action</th></tr></thead>
+                <tbody id="osListBody"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody></table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCHEDULED ITEMS -->
+        <div class="page" id="page-scheduled">
+          <div class="card">
+            <div class="card-header"><div class="card-title">📣 Scheduled Official Statuses</div></div>
+            <div class="tbl-wrap">
+              <table><thead><tr><th>Author</th><th>Text</th><th>Scheduled For</th><th>Action</th></tr></thead>
+              <tbody id="schedStatusBody"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody></table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">🔔 Scheduled Notifications</div></div>
+            <div class="tbl-wrap">
+              <table><thead><tr><th>Title</th><th>Body</th><th>Topic</th><th>Scheduled For</th><th>Action</th></tr></thead>
+              <tbody id="schedNotifBody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTACT REQUESTS -->
+        <div class="page" id="page-contactrequests">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📩 Contact Requests</div>
+              <div style="display:flex;gap:8px">
+                <select class="form-select" id="crFilter" style="width:160px" onchange="window.loadContactRequests()">
+                  <option value="open">Open (Unreplied)</option><option value="replied">Replied</option><option value="all">All</option>
+                </select>
+                <button class="btn-sm btn-info" onclick="window.loadContactRequests()">🔄 Refresh</button>
+              </div>
+            </div>
+            <div class="tbl-wrap">
+              <table><thead><tr><th>Date</th><th>UID</th><th>Email</th><th>Subject</th><th>Message</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="crBody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TERMS -->
+        <div class="page" id="page-terms">
+          <div class="card">
+            <div class="card-header"><div class="card-title">📜 Terms &amp; Conditions</div></div>
+            <div class="card-body">
+              <textarea class="form-inp form-textarea" id="termsContent" rows="22" placeholder="Enter Terms &amp; Conditions…" style="min-height:400px"></textarea>
+              <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
+                <button class="btn-action" onclick="window.saveAdminConfig('terms_conditions','termsContent')">💾 Save Terms</button>
+                <button class="btn-sm btn-info" onclick="window.loadAdminConfig('terms_conditions','termsContent')">🔄 Reload</button>
+                <span id="termsSaveStatus" class="status-msg ok"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRIVACY -->
+        <div class="page" id="page-privacy">
+          <div class="card">
+            <div class="card-header"><div class="card-title">🔐 Privacy Policy</div></div>
+            <div class="card-body">
+              <textarea class="form-inp form-textarea" id="privacyContent" rows="22" placeholder="Enter Privacy Policy…" style="min-height:400px"></textarea>
+              <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
+                <button class="btn-action" onclick="window.saveAdminConfig('privacy_policy','privacyContent')">💾 Save Policy</button>
+                <button class="btn-sm btn-info" onclick="window.loadAdminConfig('privacy_policy','privacyContent')">🔄 Reload</button>
+                <span id="privacySaveStatus" class="status-msg ok"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TEAM -->
+        <div class="page" id="page-team">
+          <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:16px">
+            <div class="card" id="addTeamCard">
+              <div class="card-header"><div class="card-title">➕ Add Team Member</div></div>
+              <div class="card-body">
+                <div class="form-group"><label class="form-label">Full Name</label><input class="form-inp" id="tmName" placeholder="John Doe" /></div>
+                <div class="form-group"><label class="form-label">Phone</label><input class="form-inp" id="tmPhone" placeholder="+91XXXXXXXXXX" /></div>
+                <div class="form-group"><label class="form-label">Password (min 8 chars)</label><input class="form-inp" id="tmPass" type="password" placeholder="Min 8 chars" /></div>
+                <div class="form-group"><label class="form-label">Role</label>
+                  <select class="form-select" id="tmRole">
+                    <option value="second_admin">Second Admin</option>
+                    <option value="tech_team">Tech Team</option>
+                    <option value="support_team" selected>Support Team</option>
+                  </select>
+                </div>
+                <button class="btn-action" onclick="window.addTeamMember()">Add Member</button>
+                <div id="teamErr" class="status-msg err-inline"></div>
+                <div id="teamOk" class="status-msg ok"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Admin Team</div></div>
+              <div class="tbl-wrap">
+                <table><thead><tr><th>Name</th><th>Phone</th><th>Role</th><th>Added By</th><th>Date</th><th>Action</th></tr></thead>
+                <tbody id="teamBody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody></table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ANALYTICS -->
+        <div class="page" id="page-analytics">
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-icon">💬</div><div class="stat-val" id="aChatsTotal">…</div><div class="stat-lbl">Total Chats</div></div>
+            <div class="stat-card"><div class="stat-icon">📡</div><div class="stat-val" id="aChannelsTotal">…</div><div class="stat-lbl">Channels</div></div>
+            <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="aGroupsTotal">…</div><div class="stat-lbl">Groups</div></div>
+            <div class="stat-card"><div class="stat-icon">📢</div><div class="stat-val" id="aBroadcastTotal">…</div><div class="stat-lbl">Broadcasts</div></div>
+            <div class="stat-card"><div class="stat-icon">🌐</div><div class="stat-val" id="aWebSessions">…</div><div class="stat-lbl">Web QR Logins</div></div>
+            <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-val" id="aMessagesTotal">…</div><div class="stat-lbl">Statuses Today</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">New Users — Last 7 Days</div></div>
+            <div class="card-body">
+              <div class="chart-wrap" id="chartBars"></div>
+              <div class="chart-labels" id="chartLabels"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AUDIT LOGS -->
+        <div class="page" id="page-logs">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Audit Logs</div>
+              <button class="btn-sm btn-danger" onclick="window.clearOldLogs()">🗑 Clear Old (30d+)</button>
+            </div>
+            <div class="tbl-wrap">
+              <table><thead><tr><th>Admin</th><th>Action</th><th>Target</th><th>Time</th></tr></thead>
+              <tbody id="logsBody"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div class="page" id="page-settings">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div class="card">
+              <div class="card-header"><div class="card-title">🔴 Maintenance Mode</div></div>
+              <div class="card-body">
+                <p style="font-size:13px;color:var(--muted);margin-bottom:16px">When ON, users see a maintenance screen and cannot use the app.</p>
+                <div class="toggle-wrap">
+                  <div class="toggle-track red-on" id="maintTrack" onclick="window.toggleMaintenance()"><div class="toggle-thumb"></div></div>
+                  <div class="toggle-label" id="maintenanceStatus">🟢 App is Live</div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">📣 App Announcement</div></div>
+              <div class="card-body">
+                <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Shown as a banner inside the app to all users.</p>
+                <textarea class="form-inp form-textarea" id="announcementText" placeholder="Enter announcement text…" style="min-height:70px"></textarea>
+                <button class="btn-action" style="margin-top:10px" onclick="window.saveAnnouncement()">Save Announcement</button>
+                <div id="annOk" class="status-msg ok"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">📱 Version Control</div></div>
+              <div class="card-body">
+                <div class="form-group"><label class="form-label">Minimum Required Version</label><input class="form-inp" id="minVersion" placeholder="e.g. 1.2.0" /></div>
+                <div class="form-group"><label class="form-label">Latest Version</label><input class="form-inp" id="latestVersion" placeholder="e.g. 1.5.0" /></div>
+                <button class="btn-action" onclick="window.saveVersionConfig()">Save</button>
+                <div id="versionOk" class="status-msg ok"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">🚩 Feature Flags</div></div>
+              <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+                <div class="toggle-wrap"><div class="toggle-track" id="ffAITrack" onclick="window.toggleFeatureFlag('ai','ffAITrack')"><div class="toggle-thumb"></div></div><span style="font-size:14px">🤖 AI Features</span></div>
+                <div class="toggle-wrap"><div class="toggle-track" id="ffWebTrack" onclick="window.toggleFeatureFlag('webLogin','ffWebTrack')"><div class="toggle-thumb"></div></div><span style="font-size:14px">🌐 Web Login</span></div>
+                <div class="toggle-wrap"><div class="toggle-track" id="ffMeshTrack" onclick="window.toggleFeatureFlag('mesh','ffMeshTrack')"><div class="toggle-thumb"></div></div><span style="font-size:14px">📶 Mesh Mode</span></div>
+                <div class="toggle-wrap"><div class="toggle-track" id="ffStatusTrack" onclick="window.toggleFeatureFlag('status','ffStatusTrack')"><div class="toggle-thumb"></div></div><span style="font-size:14px">🔵 Status Updates</span></div>
+                <div class="toggle-wrap"><div class="toggle-track" id="ffEmergencyTrack" onclick="window.toggleFeatureFlag('emergencyMesh','ffEmergencyTrack')"><div class="toggle-thumb"></div></div><span style="font-size:14px">📡 Emergency Mesh</span></div>
+                <div class="toggle-wrap"><div class="toggle-track" id="ffSecretTrack" onclick="window.toggleFeatureFlag('secretChat','ffSecretTrack')"><div class="toggle-thumb"></div></div><span style="font-size:14px">🔐 Secret Chats</span></div>
+                <div class="toggle-wrap"><div class="toggle-track" id="ffBackupTrack" onclick="window.toggleFeatureFlag('driveBackup','ffBackupTrack')"><div class="toggle-thumb"></div></div><span style="font-size:14px">☁️ Drive Backup</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- REMOTE CONFIG -->
+        <div class="page" id="page-config">
+          <div class="card">
+            <div class="card-header"><div class="card-title">🔑 API Keys &amp; Endpoints</div></div>
+            <div class="card-body">
+              <div class="form-group"><label class="form-label">AGORA_APP_ID</label><input class="form-inp" id="rc-AGORA_APP_ID" placeholder="Agora App ID" /></div>
+              <div class="form-group"><label class="form-label">AGORA_APP_CERTIFICATE</label><input class="form-inp" type="password" id="rc-AGORA_APP_CERTIFICATE" placeholder="Agora Certificate" /></div>
+              <div class="form-group"><label class="form-label">OLLAMA_ENDPOINT_URL</label><input class="form-inp" id="rc-OLLAMA_ENDPOINT_URL" placeholder="https://your-devil-ai.server.com" /></div>
+              <div class="form-group"><label class="form-label">OLLAMA_SECRET_KEY</label><input class="form-inp" type="password" id="rc-OLLAMA_SECRET_KEY" placeholder="Secret key" /></div>
+              <div class="form-group"><label class="form-label">DEVIL_AI_MODEL</label><input class="form-inp" id="rc-DEVIL_AI_MODEL" placeholder="mistral / llama3 / gemma" /></div>
+              <div class="form-group"><label class="form-label">SARVAM_API_KEY</label><input class="form-inp" type="password" id="rc-SARVAM_API_KEY" placeholder="Sarvam API Key" /></div>
+              <div class="form-group"><label class="form-label">GIPHY_API_KEY</label><input class="form-inp" type="password" id="rc-GIPHY_API_KEY" placeholder="Giphy API Key" /></div>
+              <button class="btn-action" onclick="window.saveRemoteConfig()">💾 Save Config</button>
+              <div id="rcStatus" class="status-msg ok"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADMOB -->
+        <div class="page" id="page-admob">
+          <div class="card">
+            <div class="card-header"><div class="card-title">💰 AdMob Placement Flags</div></div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:16px">
+              <div class="toggle-wrap"><label class="toggle-cb"><input type="checkbox" id="flag-ADMOB_CHANNELS_ENABLED" onchange="window.saveRemoteFlag('ADMOB_CHANNELS_ENABLED',this.checked)" /><span class="slider"></span></label><span style="font-size:14px">AdMob in Channels Feed</span></div>
+              <div class="toggle-wrap"><label class="toggle-cb"><input type="checkbox" id="flag-ADMOB_AI_CHAT_ENABLED" onchange="window.saveRemoteFlag('ADMOB_AI_CHAT_ENABLED',this.checked)" /><span class="slider"></span></label><span style="font-size:14px">AdMob in AI Chat</span></div>
+              <div class="toggle-wrap"><label class="toggle-cb"><input type="checkbox" id="flag-ADMOB_STATUS_ENABLED" onchange="window.saveRemoteFlag('ADMOB_STATUS_ENABLED',this.checked)" /><span class="slider"></span></label><span style="font-size:14px">AdMob in Status Feed</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LANGUAGES -->
+        <div class="page" id="page-languages">
+          <div class="card">
+            <div class="card-header"><div class="card-title">🌐 Indian Language Support (Sarvam AI)</div></div>
+            <div class="card-body">
+              <div id="langGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RATE LIMITING -->
+        <div class="page" id="page-ratelimit">
+          <div class="card" style="max-width:560px">
+            <div class="card-header"><div class="card-title">🚦 Rate Limiting</div></div>
+            <div class="card-body">
+              <div class="form-group"><label class="form-label">Messages / min (per user)</label><input class="form-inp" id="rl-msg" type="number" placeholder="60" /></div>
+              <div class="form-group"><label class="form-label">API calls / hour (B2B)</label><input class="form-inp" id="rl-api" type="number" placeholder="1000" /></div>
+              <div class="form-group"><label class="form-label">AI requests / day (per user)</label><input class="form-inp" id="rl-ai" type="number" placeholder="100" /></div>
+              <button class="btn-action" onclick="window.saveRateLimits()">💾 Save Limits</button>
+              <div id="rlStatus" class="status-msg ok"></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /page-wrap -->
+    </div><!-- /main -->
+  </div><!-- /shell -->
+</div><!-- /dashboard -->
+
+<!-- USER MODAL -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal">
+    <h3>👤 User Profile</h3>
+    <div id="userModalContent"></div>
+    <button class="modal-close-btn" onclick="document.getElementById('userModal').classList.remove('open')">Close</button>
+  </div>
+</div>
+
+<!-- REPLY MODAL -->
+<div class="modal-overlay" id="replyModal">
+  <div class="modal">
+    <h3>💬 Reply to Contact Request</h3>
+    <p id="replyModalMeta" style="font-size:13px;color:var(--muted);margin-bottom:8px"></p>
+    <div style="background:#f8f5ff;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--muted);max-height:80px;overflow-y:auto" id="replyOriginalMsg"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:13px;color:var(--muted)">Your Reply</span>
+      <button class="btn-sm btn-purple" onclick="window.aiSuggestReply()" id="aiSuggestBtn">🤖 AI Suggest Reply</button>
+    </div>
+    <div id="aiSuggestionBox" style="display:none" class="ai-suggestion"></div>
+    <div id="aiSuggestionActions" style="display:none;margin-top:6px;margin-bottom:8px;gap:6px">
+      <button class="btn-sm btn-success" onclick="window.useAiSuggestion()">✅ Use This Reply</button>
+      <button class="btn-sm" style="background:#f1f5f9;margin-left:6px" onclick="document.getElementById('aiSuggestionBox').style.display='none';document.getElementById('aiSuggestionActions').style.display='none'">✕ Dismiss</button>
+    </div>
+    <textarea class="form-inp form-textarea" id="replyText" rows="6" placeholder="Type your reply…"></textarea>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="window.closeReplyModal()">Cancel</button>
+      <button class="btn-action" onclick="window.submitReply()">📨 Send Reply</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUSPEND MODAL -->
+<div class="modal-overlay" id="suspendModal">
+  <div class="modal" style="max-width:380px">
+    <h3>⏸ Suspend User</h3>
+    <p id="suspendModalUid" style="font-size:12px;color:var(--muted);margin-bottom:16px"></p>
+    <div class="form-group"><label class="form-label">Duration</label>
+      <select class="form-select" id="suspendDuration">
+        <option value="86400000">24 Hours</option>
+        <option value="172800000" selected>48 Hours</option>
+        <option value="604800000">7 Days</option>
+        <option value="2592000000">30 Days</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Reason (shown to user)</label>
+      <input class="form-inp" id="suspendReason" placeholder="e.g. Violation of community guidelines" />
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="window.closeSuspendModal()">Cancel</button>
+      <button class="btn-action" style="background:var(--orange)" onclick="window.confirmSuspend()">⏸ Suspend</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="admin.js"></script>
+</body>
+</html>

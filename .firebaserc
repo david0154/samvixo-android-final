@@ -1,0 +1,31 @@
+{
+  "projects": {
+    "default": "samvixo-nexuzy"
+  },
+  "targets": {
+    "samvixo-nexuzy": {
+      "hosting": {
+        "web": [
+          "samvixo-web"
+        ],
+        "marketing": [
+          "samvixo-marketing"
+        ],
+        "admin": [
+          "samvixo-admin"
+        ]
+      }
+    },
+    "samvixo": {
+      "hosting": {
+        "app": [
+          "samvixo-app"
+        ],
+        "admin": [
+          "samvixo-admin"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

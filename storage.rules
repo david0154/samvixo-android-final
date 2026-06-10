@@ -1,0 +1,99 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── User profile avatars — owner only, images, max 5 MB ────────────
+    match /avatars/{uid}/{fileName} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Legacy flat path used by EditProfileScreen: avatars/{uid}.jpg
+    match /avatars/{fileName} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Chat media (images, videos, audio) — max 100 MB ────────────────
+    match /chat_media/{chatId}/{fileName} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 100 * 1024 * 1024;
+    }
+
+    // ── Voice notes ─────────────────────────────────────────────────────
+    match /voice_notes/{allPaths=**} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 100 * 1024 * 1024;
+    }
+
+    // ── User status media — owner only, max 50 MB ───────────────────────
+    match /status_media/{uid}/{fileName} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size < 50 * 1024 * 1024;
+    }
+
+    // Flat status_media path used by StatusCreateScreen
+    match /status_media/{allPaths=**} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 50 * 1024 * 1024;
+    }
+
+    // ── Channel photos — any authenticated user, images, max 10 MB ──────
+    // Fixes: "permission denied" when creating a channel
+    match /channel_photos/{allPaths=**} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Group photos — any authenticated user, images, max 10 MB ────────
+    // Fixes: "permission denied" when creating a group
+    match /group_photos/{allPaths=**} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Official status media (admin posts) — admin write, public read ──
+    match /official_status_media/{fileName} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+        && firestore.exists(
+          /databases/(default)/documents/admins/$(request.auth.uid)
+        );
+    }
+
+    // ── File transfers (PDF, ZIP, APK) — max 500 MB ─────────────────────
+    match /transfers/{transferId}/{fileName} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 500 * 1024 * 1024;
+    }
+
+    // ── Admin assets (logos, etc.) — public read, admin write ───────────
+    match /admin/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && firestore.exists(
+          /databases/(default)/documents/admins/$(request.auth.uid)
+        );
+    }
+
+    // ── Deny everything else ─────────────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

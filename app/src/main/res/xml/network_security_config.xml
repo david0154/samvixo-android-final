@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="false">
+        <!-- Devil AI endpoint -->
+        <domain includeSubdomains="true">aiapi.devilpvt.in</domain>
+        <!-- Sarvam AI -->
+        <domain includeSubdomains="true">api.sarvam.ai</domain>
+        <!-- Firebase -->
+        <domain includeSubdomains="true">firebase.google.com</domain>
+        <domain includeSubdomains="true">firebaseapp.com</domain>
+        <domain includeSubdomains="true">googleapis.com</domain>
+        <!-- Agora -->
+        <domain includeSubdomains="true">agora.io</domain>
+        <!-- OpenStreetMap / OSMDroid -->
+        <domain includeSubdomains="true">openstreetmap.org</domain>
+        <!-- Open-Meteo Weather -->
+        <domain includeSubdomains="true">open-meteo.com</domain>
+        <!-- Giphy -->
+        <domain includeSubdomains="true">giphy.com</domain>
+    </domain-config>
+</network-security-config>

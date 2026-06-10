@@ -1,0 +1,33 @@
+# Firebase
+google-services.json
+**/google-services.json
+GoogleService-Info.plist
+
+# Config files
+config.kt
+Config.kt
+**/config.kt
+**/Config.kt
+
+# Environment
+.env
+.env.*
+local.properties
+
+# Signing keys
+*.jks
+*.keystore
+key.properties
+keystore.properties
+signing.properties
+
+# Firebase Admin SDK
+firebase-adminsdk*.json
+service-account.json
+
+# Android Studio
+.idea/
+.gradle/
+build/
+*/build/
+*.iml
